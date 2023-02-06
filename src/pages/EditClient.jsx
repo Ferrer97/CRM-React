@@ -1,12 +1,27 @@
-import { useNavigate, Form, useActionData, redirect } from "react-router-dom";
-import { Error, Formulario } from "../components";
-import { addClient } from "../data/Clientes";
+import {
+  Form,
+  redirect,
+  useActionData,
+  useLoaderData,
+  useNavigate,
+} from "react-router-dom";
+import { Formulario, Error } from "../components";
+import { getClientById, updateClient } from "../data/Clientes";
 
-export async function action({ request }) {
+export async function loader({ params }) {
+  const cliente = await getClientById(params.id);
+  if (Object.values(cliente).length === 0) {
+    throw new Response("", {
+      status: 404,
+      statusText: "No hay resultados",
+    });
+  }
+  return cliente;
+}
+
+export async function accion({ request, params }) {
   const formData = await request.formData();
-
   const data = Object.fromEntries(formData);
-
   const email = formData.get("email");
 
   // validacion
@@ -24,15 +39,16 @@ export async function action({ request }) {
   if (Object.keys(errors).length) {
     return errors;
   }
-
-  await addClient(data);
+  // Actulizar cliente
+  await updateClient(params.id, data);
 
   return redirect("/");
 }
 
-export const NewClient = () => {
-  const navigate = useNavigate();
+export const EditClient = () => {
+  const cliente = useLoaderData();
   const errors = useActionData();
+  const navigate = useNavigate();
 
   const handleClick = () => {
     navigate("/");
@@ -57,12 +73,13 @@ export const NewClient = () => {
       <div className="bg-white shadow rounded-md md:w-3/4 mx-auto px-5 py-10 mt-20">
         {errors?.length &&
           errors.map((error, i) => <Error key={i}>{error}</Error>)}
+
         <Form method="post" noValidate>
-          <Formulario />
+          <Formulario cliente={cliente} />
 
           <input
             type="submit"
-            value="Registrar Cliente"
+            value="Actulizar Cliente"
             className="mt-5 w-full bg-blue-800 text-white text-lg uppercase cursor-pointer"
           />
         </Form>
